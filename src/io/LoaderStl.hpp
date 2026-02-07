@@ -5,7 +5,7 @@
 //
 // LoaderStl.hpp
 //
-// Written by: <Your Name>
+// Written by: Kuan-Min Lee
 //
 // Software developed for the course
 // Digital Geometry Processing
@@ -47,7 +47,8 @@ class LoaderStl : public Loader {
 private:
 
   const static char* _ext;
-
+  bool loadFace(Tokenizer&tkn, std::vector<float>& normal, std::vector<float>& coord, std::vector<int>& coordIndex);
+  
 public:
 
   LoaderStl()  {};

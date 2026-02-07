@@ -5,7 +5,7 @@
 //
 // LoaderStl.cpp
 //
-// Written by: <Your Name>
+// Written by: Kuan-Min Lee
 //
 // Software developed for the course
 // Digital Geometry Processing
@@ -49,6 +49,55 @@
 
 const char* LoaderStl::_ext = "stl";
 
+bool LoaderStl::loadFace(Tokenizer&tkn, std::vector<float>& normal, std::vector<float>& coord, std::vector<int>& coordIndex){
+	// double check
+	if(!tkn.equals("facet")) throw new StrException("Expected 'facet'");
+	
+	// normal vector part
+	if (tkn.expecting("normal")){
+		float norm_coordinate;
+		int norm_coord_num = 0;
+		while(norm_coord_num < 3){
+			if (!tkn.getFloat(norm_coordinate)) throw new StrException("Expected float");
+			normal.push_back(norm_coordinate);
+			norm_coord_num += 1;
+		}
+	} else {
+		throw new StrException("Expected 'normal'");
+	}
+	
+	// coordinate part
+	int base = coord.size()/3;
+	if (!tkn.expecting("outer") || !tkn.expecting("loop")) throw new StrException("Expected 'outer loop'");
+	
+	for (int i_line=0; i_line < 3; i_line++){
+		if (tkn.expecting("vertex")) {
+			float coordinate;
+			int coord_num = 0;
+			while(coord_num < 3){
+				if (tkn.getFloat(coordinate)){
+					coord.push_back(coordinate);
+					coord_num += 1;
+				} else {
+					throw new StrException("Expected float");
+				}
+			}
+			coordIndex.push_back(base + i_line);
+		} else {
+			throw new StrException("Expected 'vertex'");
+		}
+	}
+	coordIndex.push_back(-1);
+	
+	// end loop
+	if (!tkn.expecting("endloop")) throw new StrException("Expected 'endloop'");
+	
+	// end facet
+    if (!tkn.expecting("endfacet")) throw new StrException("Expected 'endfacet'");
+
+	return true;
+}
+
 bool LoaderStl::load(const char* filename, SceneGraph& wrl) {
   bool success = false;
 
@@ -65,8 +114,8 @@ bool LoaderStl::load(const char* filename, SceneGraph& wrl) {
     if(fp==(FILE*)0) throw new StrException("fp==(FILE*)0");
 
     // use the io/Tokenizer class to parse the input ascii file
-
     TokenizerFile tkn(fp);
+	
     // first token should be "solid"
     if(tkn.expecting("solid") && tkn.get()) {
       string stlName = tkn; // second token should be the solid name
@@ -78,10 +127,50 @@ bool LoaderStl::load(const char* filename, SceneGraph& wrl) {
       // 2) the Shape node should have an Appearance node in its appearance field
       // 3) the Appearance node should have a Material node in its material field
       // 4) the Shape node should have an IndexedFaceSet node in its geometry node
-
       // from the IndexedFaceSet
       // 5) get references to the coordIndex, coord, and normal arrays
       // 6) set the normalPerVertex variable to false (i.e., normals per face)  
+
+      // Create a shape children node for scene graph
+	  // whole shape
+	  Shape* child_node = new Shape();
+	  // Appearance node
+	  Appearance* child_node_appearance = new Appearance();
+	  Material* child_node_appearance_material = new Material();
+	  child_node_appearance->setMaterial(child_node_appearance_material);
+	  // IndexedFaceSet node
+	  IndexedFaceSet* child_node_geometry = new IndexedFaceSet();
+	  // store them back to shape
+	  child_node->setAppearance(child_node_appearance);
+	  child_node->setGeometry(child_node_geometry);
+	  
+	  // assign them to scene graph
+	  wrl.addChild(child_node);
+
+      // get references to coordIndex, coord, normal arrays
+	  std::vector<int>& child_node_coordIndex = child_node_geometry->getCoordIndex();
+	  std::vector<float>& child_node_coord = child_node_geometry->getCoord();
+	  std::vector<float>& child_node_normal = child_node_geometry->getNormal();
+	  
+	  // set the normalPerVertex as false
+	  child_node_geometry->setNormalPerVertex(false);
+	  
+	  // parsing the file
+	  if (!tkn.get()) throw new StrException("Unexpected EOF after 'solid <name>'");
+	  while (true){
+		  if (tkn.equals("facet")){
+			loadFace(tkn, child_node_normal, child_node_coord, child_node_coordIndex);
+			if (!tkn.get()){
+				success = true;
+				break;
+			}
+		  } else if(tkn.equals("endsolid")){
+			  success = true;
+			  break;
+		  } else {
+			  throw new StrException("Expected 'facet' or 'endsolid'");
+		  }
+	  }
 
       // the file should contain a list of triangles in the following format
 

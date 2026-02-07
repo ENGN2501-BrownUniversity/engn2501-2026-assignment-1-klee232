@@ -37,7 +37,9 @@
 #ifndef _SAVER_STL_HPP_
 #define _SAVER_STL_HPP_
 
+#include <cstdio>
 #include "Saver.hpp"
+#include "core/Faces.hpp"
 
 class SaverStl : public Saver {
 
@@ -51,10 +53,11 @@ public:
   ~SaverStl() {};
 
   bool  save(const char* filename, SceneGraph& wrl) const;
-  const char* ext() const { return _ext; }
+  const char* ext() const { return _ext; };
   
 private:
-
+   
+   void saveFace(FILE* fp, const Faces& faces, int face_id, std::vector<float>& coord, std::vector<float>& Normal) const;
 };
 
 #endif /* _SAVER_STL_HPP_ */
