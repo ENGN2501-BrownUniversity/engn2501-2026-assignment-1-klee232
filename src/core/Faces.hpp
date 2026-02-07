@@ -88,8 +88,13 @@ public:
   int     getNextCorner(const int iC)              const;
 
 private:
-
   // TODO
+  std::vector<int> coordIndex_;
+  int num_vertices_;
+  int num_faces_;
+  int num_corners_;
+  std::vector<std::vector<int>> face_vertice_coordIndex_; 
+  std::vector<std::vector<int>> face_corners_coordIndex_; 
 
 };
 
